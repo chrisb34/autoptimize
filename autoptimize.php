@@ -35,6 +35,12 @@ if ( is_admin() ) {
         'autoptimize'
     );
     $ao_update_checker->setBranch( 'beta' );
+    /**
+     *  Chris Backhouse 
+     **/
+    require_once AUTOPTIMIZE_PLUGIN_DIR . 'classes/autoptimize.pisol.class.form.php';
+    
+    
 }
 
 // Bail early if attempting to run on non-supported php versions.

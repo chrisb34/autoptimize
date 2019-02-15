@@ -14,6 +14,9 @@ class autoptimizeConfig
     private function __construct()
     {
         if ( is_admin() ) {
+
+            add_action('admin_enqueue_scripts','autoptimize_admin_enqueue_scripts');
+            
             // Add the admin page and settings.
             add_action( 'admin_menu', array( $this, 'addmenu' ) );
             add_action( 'admin_init', array( $this, 'registersettings' ) );
@@ -35,6 +38,8 @@ class autoptimizeConfig
             }
 
             $this->settings_screen_do_remote_http = apply_filters( 'autoptimize_settingsscreen_remotehttp', $this->settings_screen_do_remote_http );
+            
+            
         }
 
         // Adds the Autoptimize Toolbar to the Admin bar.
@@ -42,6 +47,14 @@ class autoptimizeConfig
         $toolbar = new autoptimizeToolbar();
     }
 
+    /**
+     * http2 mods
+     */
+    public function autoptimize_admin_enqueue_scripts() {
+            wp_enqueue_script( AUTOPTIMIZE_PLUGIN_DIR. 'external/js/jsrender.min.js', array( 'jquery' ), $this->version, false );
+            wp_enqueue_script( AUTOPTIMIZE_PLUGIN_DIR. 'external/js/autoptimize-admin.js', array( 'jquery' ), $this->version, false );
+    }
+    
     /**
      * @return autoptimizeConfig
      */
@@ -395,6 +408,27 @@ if ( function_exists( 'is_plugin_active' ) && ! is_plugin_active( 'autoptimize-c
 </table>
 </li>
 
+<?php 
+/**
+ * HTTP2 options
+ * 
+ * added by: Chris Backhouse <chris@percipero.com>
+ */
+?>
+<li class="<?php echo $hiddenClass;?>itemDetail ao_adv">
+<h2 class="itemTitle"><?php _e('Http2 Options','autoptimize'); ?></h2>
+<table class="form-table">
+    <tr valign="top" class="<?php echo $hiddenClass;?>ao_adv">
+    <th scope="row"><?php _e('Include Http2 headers for Auto Optimized files?','autoptimize'); ?></th>
+    <td><label class="cb_label"><input type="checkbox" name="autoptimize_http2_headers" <?php echo get_option('autoptimize_http2_headers','1')?'checked="checked" ':''; ?>/>
+    <?php _e('If your webserver supports http2, you can include preload links in the page header to increase load performance','autoptimize'); ?></label></td>
+    </tr>
+    <?php $this->http2_extra_files(); ?>
+</table>
+
+</li>
+
+
 </ul>
 
 <input type="hidden" id="autoptimize_show_adv" name="autoptimize_show_adv" value="<?php echo get_option('autoptimize_show_adv','0'); ?>">
@@ -654,6 +688,9 @@ if ( function_exists( 'is_plugin_active' ) && ! is_plugin_active( 'autoptimize-c
         register_setting( 'autoptimize', 'autoptimize_show_adv' );
         register_setting( 'autoptimize', 'autoptimize_optimize_logged' );
         register_setting( 'autoptimize', 'autoptimize_optimize_checkout' );
+        register_setting( 'autoptimize', 'autoptimize_http2_headers' );
+        register_setting( 'autoptimize', 'autoptimize_http2_list' );
+        
     }
 
     public function setmeta($links, $file = null)
@@ -709,7 +746,9 @@ if ( function_exists( 'is_plugin_active' ) && ! is_plugin_active( 'autoptimize-c
             'autoptimize_cache_nogzip' => 1,
             'autoptimize_show_adv' => 0,
             'autoptimize_optimize_logged' => 1,
-            'autoptimize_optimize_checkout' => 1
+            'autoptimize_optimize_checkout' => 1,
+            'autoptimize_http2_headers' =>0,
+            'autoptimize_http2_list' =>[]
         );
 
         return $config;
@@ -877,5 +916,67 @@ if ( function_exists( 'is_plugin_active' ) && ! is_plugin_active( 'autoptimize-c
         } else {
             return ( defined( 'DOING_AJAX' ) && DOING_AJAX );
         }
+    }
+    
+    /**
+     * new http2 settings
+     */
+    function http2_extra_files(){
+        $general_list = get_option('autoptimize_http2_list',false);
+       ?>
+        <script type="text/javascript">
+        var general_push_list = <?php echo json_encode(($general_list == false) ? array(): array_values($general_list)); ?>;
+        </script>
+        <script id="resource_tmpl" type="text/x-jsrender">
+        <div class="flex">
+        <input required type='text' class="form-control w-50 url" name="autoptimize_http2_list[{{: count}}][url]" value="{{: value.url}}" placeholder="Full url of resource">
+        <select required  class="form-control w-25" name="autoptimize_http2_list[{{: count}}][as]">
+                        <option disabled><?php _e('Select Resource Type', 'http2-push-content'); ?></option>
+                        <option value="script" {{if value.as == 'script'}}selected="selected"{{/if}}>script</option>
+                        <option value="style" {{if value.as == 'style'}}selected="selected"{{/if}}>style</option>
+                        <option value="audio" {{if value.as == 'audio'}}selected="selected"{{/if}}>audio</option>
+                        <option value="embed" {{if value.as == 'embed'}}selected="selected"{{/if}}>embed</option>
+                        <option value="fetch" {{if value.as == 'fetch'}}selected="selected"{{/if}}>fetch</option>
+                        <option value="font" {{if value.as == 'font'}}selected="selected"{{/if}}>font</option>
+                        <option value="image" {{if value.as == 'image'}}selected="selected"{{/if}}>image</option>
+                        <option value="object" {{if value.as == 'object'}}selected="selected"{{/if}}>object</option>
+                        <option value="video" {{if value.as == 'video'}}selected="selected"{{/if}}>video</option>
+        </select>
+        <select required class="formautoptimize_http2e="autoptimize_http2_list[{{: count}}][to]">
+                        <option disabled><?php _e('Select Push/Pull', 'http2-push-content'); ?></option>
+                        <option value="push-preload" {{if value.to == 'push-preload'}}selected="selected"{{/if}}>Push and Preload</option>
+                        <option value="push" {{if value.to == 'push'}}selected="selected"{{/if}}>Push</option>
+                        <option value="preload" {{if value.to == 'preload'}}selected="selected"{{/if}}>Preload</option>
+        </select>
+        <select required class="form-control w-25"  name="autoptimize_http2_list[{{: count}}][apply_to]">
+            <?php 
+                $obj = new autoptimizeContentApplyTo(); 
+                $obj->apply_to_options();
+            ?>
+        </select>
+        <a class="remove_resource_to_push" href="javascript:void(0);"><span class="dashicons dashicons-trash pi-icon"></span></a>
+        </div>
+        </script>
+        <form method="post" action="options.php"  class="pisol-setting-form">
+        <?php settings_fields( $this->setting_key ); ?>
+        <?php
+            foreach($this->config as $key => $setting){
+                $fieldConfig =[
+                        'field' => $key,
+                        'desc' => 'Extra File',
+                        'default' => $this->get_defaults()[$key]
+                ]; 
+                new autoptimize_pisol_class_form($fieldConfig, 'autoptimize');
+            }
+        ?>
+        <div id="push-resource-list">
+
+        </div>
+        <br>
+        <a class="btn btn-info btn-sm" href="javascript:void(0);" id="add_resource_to_push"><span class="dashicons dashicons-plus-alt pi-icon"></span> Add Resource to push</a>
+        <br>
+        <input type="submit" class="mt-3 btn btn-primary btn-lg" value="Save Option" />
+        </form>
+       <?php
     }
 }

@@ -371,6 +371,12 @@ abstract class autoptimizeBase
                 $warned         = true;
             }
         }
+        
+        $conf = autoptimizeConfig::instance();
+        if ( $conf->get( 'autoptimize_http2' ) && $conf->get( 'autoptimize_http2' )==true ) {
+            $this->addHttp2Header($payload);
+        }
+        
     }
 
     /**
@@ -604,6 +610,52 @@ abstract class autoptimizeBase
         }
 
         return $content;
+    }
+    
+    /**
+     * When injecting the link to the autOptimized file
+     * add an Http2 header
+     * 
+     * @param unknown $payload
+     */
+    protected function addHttp2Header( $payload ){
+    
+        $result = '';
+        preg_match_all('/<(script|link).+[src|href]\=(?:\"|\')(.+?)(?:\"|\')(?:.+?)\>/i',$payload, $result); 
+        $this->debug_log( $result );
+        $this->debug_log( '--------------------' );
+        
+        if ( is_array( $result )) {
+            $type = $result[1][0];
+            $src = $result[2][0];
+            // enqueue doesn't work so need to see how to add http2 directly
+            if ( $type == 'script') {
+                $header = sprintf(
+						'Link: <%s>; rel=preload; as=%s',
+						esc_url( $src ), 
+						'script'
+					);
+                if ( stripos($payload, 'autoptimize_') > 0 )
+                    wp_dequeue_script( basename($src) );
+                else {
+                    $this->debug_log( "dequeue: ".$src );
+                }
+            } else {
+                $header = sprintf(
+						'Link: <%s>; rel=preload; as=%s',
+						esc_url( $src ), 
+						'link'
+					);
+                if ( stripos($payload, 'autoptimize_') > 0 )
+                    wp_dequeue_style( basename($src) );
+                else {
+                    $this->debug_log( "dequeue: ".$src );
+                }
+            }
+            header( $header, false );
+                
+        }
+        
     }
 
     /**
