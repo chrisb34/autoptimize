@@ -62,9 +62,15 @@ class autoptimizeMain
         add_action( 'autoptimize_setup_done', array( $this, 'maybe_run_ao_extra' ) );
         add_action( 'autoptimize_setup_done', array( $this, 'maybe_run_partners_tab' ) );
 
+        // http2 mods
+        add_action( 'init', array( $this, 'push_http2_headers' ) );
+        
         add_action( 'init', array( $this, 'load_textdomain' ) );
         add_action( 'admin_init', array( 'PAnD', 'init' ) );
-
+        
+        // http2 mods
+        //add_action( 'init', array( $this, 'push_http2_headers' ) );
+        
         register_activation_hook( $this->filepath, array( $this, 'on_activate' ) );
     }
 
@@ -203,6 +209,45 @@ class autoptimizeMain
         }
     }
 
+    /**
+     * http2 mods
+     * 
+     * 
+     */
+    public function push_http2_headers() {
+        if ( ! autoptimizeConfig::is_admin_and_not_ajax() ) {
+            $general_list = get_option('autoptimize_http2_list',false);
+            //error_log( 'push_http2_headers $general_list: ' . print_r( $general_list, true ));
+                    
+            if ( !empty($general_list) && is_array($general_list) ) {
+                foreach ($general_list as $pushItem) {
+                    //error_log( 'push_http2_headers: ' . print_r( $pushItem, true ));
+                    // need to determine how to figure out what is the frontend as this is before WP_Query has been populated
+                    //if ( is_front_page() && $pushItem['apply_to']=='')
+                    autoptimizeHttp2::createHeader($pushItem['as'], $pushItem['url']);
+                }
+            }
+            
+        }
+    }
+    
+    /**
+     * http2 mods
+     * 
+     * 
+     */
+    private function is_front_page() {
+        // most likely case
+        if ( 'posts' == get_option( 'show_on_front' ) && get_option( 'page_for_posts' )=='something yet to be defined' ) {
+            return true;
+        } elseif ( 'page' == get_option( 'show_on_front' ) && get_option( 'page_on_front' ) && $this->is_page( get_option( 'page_on_front' ) ) ) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    
     public function hook_page_cache_purge()
     {
         // hook into a collection of page cache purge actions if filter allows.

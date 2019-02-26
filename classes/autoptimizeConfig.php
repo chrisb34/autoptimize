@@ -15,12 +15,10 @@ class autoptimizeConfig
     {
         if ( is_admin() ) {
 
-            add_action('admin_enqueue_scripts','autoptimize_admin_enqueue_scripts');
-            
             // Add the admin page and settings.
             add_action( 'admin_menu', array( $this, 'addmenu' ) );
             add_action( 'admin_init', array( $this, 'registersettings' ) );
-
+            
             // Set meta info.
             if ( function_exists( 'plugin_row_meta' ) ) {
                 // 2.8 and higher.
@@ -47,14 +45,6 @@ class autoptimizeConfig
         $toolbar = new autoptimizeToolbar();
     }
 
-    /**
-     * http2 mods
-     */
-    public function autoptimize_admin_enqueue_scripts() {
-            wp_enqueue_script( AUTOPTIMIZE_PLUGIN_DIR. 'external/js/jsrender.min.js', array( 'jquery' ), $this->version, false );
-            wp_enqueue_script( AUTOPTIMIZE_PLUGIN_DIR. 'external/js/autoptimize-admin.js', array( 'jquery' ), $this->version, false );
-    }
-    
     /**
      * @return autoptimizeConfig
      */
@@ -655,6 +645,10 @@ if ( function_exists( 'is_plugin_active' ) && ! is_plugin_active( 'autoptimize-c
     {
         wp_enqueue_script( 'jqcookie', plugins_url( '/external/js/jquery.cookie.min.js', __FILE__ ), array( 'jquery' ), null, true );
         wp_enqueue_script( 'unslider', plugins_url( '/external/js/unslider-min.js', __FILE__ ), array( 'jquery' ), null, true );
+         // Http2 mods 
+        wp_enqueue_script('jsrender', plugins_url( '/external/js/jsrender.min.js', __FILE__ ), [], AUTOPTIMIZE_PLUGIN_VERSION, true );
+        wp_enqueue_script('autoptimize-admin', plugins_url(  '/external/js/autoptimize-admin.js' , __FILE__), ['jsrender'], AUTOPTIMIZE_PLUGIN_VERSION);
+           
     }
 
     public function autoptimize_admin_styles()
@@ -715,6 +709,7 @@ if ( function_exists( 'is_plugin_active' ) && ! is_plugin_active( 'autoptimize-c
             }
         }
 
+        error_log( $links );
         return $links;
     }
 
@@ -748,7 +743,7 @@ if ( function_exists( 'is_plugin_active' ) && ! is_plugin_active( 'autoptimize-c
             'autoptimize_optimize_logged' => 1,
             'autoptimize_optimize_checkout' => 1,
             'autoptimize_http2_headers' =>0,
-            'autoptimize_http2_list' =>[]
+            'autoptimize_http2_list' =>''
         );
 
         return $config;
@@ -958,7 +953,7 @@ if ( function_exists( 'is_plugin_active' ) && ! is_plugin_active( 'autoptimize-c
         </div>
         </script>
         <form method="post" action="options.php"  class="pisol-setting-form">
-        <?php settings_fields( $this->setting_key ); ?>
+        <?php settings_fields( 'autoptimize' ); ?>
         <?php
             foreach($this->config as $key => $setting){
                 $fieldConfig =[

@@ -372,8 +372,9 @@ abstract class autoptimizeBase
             }
         }
         
+        //error_log("inject in html" );
         $conf = autoptimizeConfig::instance();
-        if ( $conf->get( 'autoptimize_http2' ) && $conf->get( 'autoptimize_http2' )==true ) {
+        if ( $conf->get( 'autoptimize_http2_headers' ) && $conf->get( 'autoptimize_http2_headers' )==true ) {
             $this->addHttp2Header($payload);
         }
         
@@ -628,32 +629,7 @@ abstract class autoptimizeBase
         if ( is_array( $result )) {
             $type = $result[1][0];
             $src = $result[2][0];
-            // enqueue doesn't work so need to see how to add http2 directly
-            if ( $type == 'script') {
-                $header = sprintf(
-						'Link: <%s>; rel=preload; as=%s',
-						esc_url( $src ), 
-						'script'
-					);
-                if ( stripos($payload, 'autoptimize_') > 0 )
-                    wp_dequeue_script( basename($src) );
-                else {
-                    $this->debug_log( "dequeue: ".$src );
-                }
-            } else {
-                $header = sprintf(
-						'Link: <%s>; rel=preload; as=%s',
-						esc_url( $src ), 
-						'link'
-					);
-                if ( stripos($payload, 'autoptimize_') > 0 )
-                    wp_dequeue_style( basename($src) );
-                else {
-                    $this->debug_log( "dequeue: ".$src );
-                }
-            }
-            header( $header, false );
-                
+            autoptimizeHttp2::createHeader($type, $src);
         }
         
     }

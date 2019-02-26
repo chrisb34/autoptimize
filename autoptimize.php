@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Autoptimize
+Plugin Name: Autoptimize (beta)
 Plugin URI: https://autoptimize.com/
 Description: Optimizes your website, concatenating the CSS and JavaScript code, and compressing it.
 Version: 2.5.0-beta-3
@@ -36,7 +36,7 @@ if ( is_admin() ) {
     );
     $ao_update_checker->setBranch( 'beta' );
     /**
-     *  Chris Backhouse 
+     *  Http2 mods
      **/
     require_once AUTOPTIMIZE_PLUGIN_DIR . 'classes/autoptimize.pisol.class.form.php';
     
